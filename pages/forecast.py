@@ -317,13 +317,22 @@ if "uploaded" in st.session_state:
             label="Modelling Service", options=mod_serv_options,key='mod_serv_proph'
         )
 
+        # Creating a multiselect box so that users can remove data points that appear to
+        # be anomalous and affect the training of the Prophet model. 
+
         anomalous_months = st.multiselect(
             label = 'Select any months where you see anomalous activity',
             options = sorted(set(df_mod['REFERRAL_MONTH']))
         )
 
-        anomalous_months = pd.to_datetime(anomalous_months)
+        # Ensure that the values are a list datetimes so that they can be compared against the
+        # datetime index in the y_train data.
+        anomalous_months = pd.to_datetime(anomalous_months).to_list()
 
+        # Present a warning that users shouldn't remove too many data points.
+
+        st.warning('Remove only 1 or 2 data points, lest the quality of the forecast be affected.', icon="⚠️")
+        
         # Get the slice of data we will use in our Prophet forecast
 
         df_forecast_proph = df_mod[df_mod['MODELLING_SERVICE'] == proph_mod_serv_select].copy()
@@ -360,14 +369,23 @@ if "uploaded" in st.session_state:
 
             return prophet_train
 
-        y_train = proph_train_input[~proph_train_input.index.isin(anomalous_months)] #index holds the dates
-        y_train.index.freq = 'MS'        # tell Prophet the date is Month Start
+        proph_train_input.index = pd.to_datetime(proph_train_input.index)
+        proph_train_input.index.freq = 'MS'
+        
+        # proph_train_input[~proph_train_input.index.isin(anomalous_months)] #index holds the dates
+        # y_train.index.freq = 'MS'        # tell Prophet the date is Month Start
+        
+        y_train = proph_train_input[~proph_train_input.index.isin(anomalous_months)]
 
         prophet_train = _prophet_training_data(y_train)
 
         # Fit the model
+        # Admittedly, "seasonality_prior_scale" has been tweaked so that the prediction Prophet makes
+        # looks reasonable, given the limited amount of data we are working with. Without any
+        # tuning, Prophet was greatly exaggerating the fluctuations in the predicted values.
         p_model = Prophet(
-            interval_width = 0.95
+            interval_width = 0.95,              # confidence interval
+            seasonality_prior_scale = 0.2       # determines how strong the seasonal component is
             )
         p_model.fit(prophet_train)
 
@@ -394,6 +412,6 @@ if "uploaded" in st.session_state:
         plt.xticks(rotation=90,fontsize=8)
         plt.yticks(fontsize=8)
         ax.legend(fontsize=8)
-        st.pyplot(fig, use_container_width=False)
+        st.pyplot(fig)
 else:
     st.info("Please upload a .csv file of your data to continue")
