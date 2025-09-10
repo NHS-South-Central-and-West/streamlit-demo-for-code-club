@@ -241,7 +241,7 @@ if "uploaded" in st.session_state:
         st.header("Making a prediction with our Holt-Winters model")
 
         st.markdown("""
-                    We can now make a prediction using our model. Lorem ipsum...
+                    We can now make a prediction using our model.
         """)
 
         # Apply the model to the whole historic dataset
@@ -412,6 +412,6 @@ if "uploaded" in st.session_state:
         plt.xticks(rotation=90,fontsize=8)
         plt.yticks(fontsize=8)
         ax.legend(fontsize=8)
-        st.pyplot(fig)
+        st.pyplot(fig,width="content")
 else:
     st.info("Please upload a .csv file of your data to continue")
